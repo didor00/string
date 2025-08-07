@@ -8,7 +8,7 @@ customtkinter.set_appearance_mode("light")  # Светлая тема для "т
 app = customtkinter.CTk()
 app.configure(bg="#FFF0F5")  # Резервный светло-розовый фон
 app.geometry("700x400")  # Сделал окно чуть выше для статус-бара
-app.title("spastil DarkFred     |     THIS TOOL IS FREE")
+app.title("сделал с душой DarkFred     |     СТРИНГИ КВАГОНА КРАСНЕНЬКИЕ")
 
 # --- Установка фона с изображением ---
 def set_background(image_path):
@@ -28,7 +28,7 @@ def set_background(image_path):
         print(f"Ошибка загрузки фона: {e}")
 
 # Укажите путь к изображению "тяночки" (замените на свой файл)
-background_image = "C:/Users/yaric/tyanochka.png"  # Замените на реальный путь!
+background_image = "C:\Users\yaric\Downloads\original.jpg"  # Замените на реальный путь!
 set_background(background_image)
 
 # --- Элементы интерфейса ---
