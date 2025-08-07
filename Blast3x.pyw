@@ -4,19 +4,19 @@ import customtkinter
 import tkinter
 
 # --- Настройка окна ---
-customtkinter.set_appearance_mode("dark")  # Используем темную тему
+customtkinter.set_appearance_mode("light")  # Изменили на светлую тему для "тяночного" стиля
 app = customtkinter.CTk()
-app.configure(bg="black")
-app.geometry("700x400") # Сделал окно чуть выше для статус-бара
+app.configure(bg="#FFF0F5")  # Светло-розовый фон для тян-вайба
+app.geometry("700x400")  # Сделал окно чуть выше для статус-бара
 app.title("spastil DarkFred     |     THIS TOOL IS FREE")
 
 # --- Элементы интерфейса ---
-label_title = customtkinter.CTkLabel(master=app, text="spastil DarkFred", text_color="#FF0000", font=("Arial", 20))
+label_title = customtkinter.CTkLabel(master=app, text="spastil DarkFred", text_color="#FF69B4", font=("Arial", 20))  # Розовый текст
 label_title.place(relx=0.5, rely=0.1, anchor=tkinter.CENTER)
 
 # ИЗМЕНЕНИЕ №1: Запрашиваем PID вместо имени процесса
 entry_pid = customtkinter.CTkEntry(master=app,
-                                   placeholder_text="PID процесса", # Изменен текст-подсказка
+                                   placeholder_text="PID процесса",
                                    width=150,
                                    height=30,
                                    border_width=2,
@@ -43,13 +43,12 @@ entry_length.place(relx=0.5, rely=0.55, anchor=tkinter.CENTER)
 status_label = customtkinter.CTkLabel(master=app, text="Статус: ожидание ввода", text_color="grey")
 status_label.place(relx=0.5, rely=0.9, anchor=tkinter.CENTER)
 
-
 # ИЗМЕНЕНИЕ №2: Полностью переписанная логика кнопки
 def button_event():
     try:
         # Получаем данные из полей ввода
-        pid = int(entry_pid.get()) # Конвертируем PID в число
-        address = int(entry_address.get(), 0) # 0 позволяет вводить hex (0x...)
+        pid = int(entry_pid.get())  # Конвертируем PID в число
+        address = int(entry_address.get(), 0)  # 0 позволяет вводить hex (0x...)
         length = int(entry_length.get(), 0)
     except ValueError:
         # Если пользователь ввел текст вместо числа
@@ -60,7 +59,7 @@ def button_event():
         # 1. Открываем процесс по его PID
         pm = pymem.Pymem(pid)
         status_label.configure(text=f"Процесс '{pm.process_name}' (PID: {pid}) найден.", text_color="cyan")
-        app.update_idletasks() # Обновляем текст до начала записи
+        app.update_idletasks()  # Обновляем текст до начала записи
 
         # 2. Готовим данные для записи (байтовая строка из точек)
         # Это правильный и эффективный способ
@@ -79,14 +78,13 @@ def button_event():
         # Ловим любые другие непредвиденные ошибки
         status_label.configure(text=f"Неизвестная ошибка: {e}", text_color="red")
 
-
 button = customtkinter.CTkButton(master=app,
                                  width=120,
                                  height=32,
                                  border_width=0,
                                  corner_radius=8,
-                                 fg_color="#FF0000",
-                                 hover_color="#6A6767",
+                                 fg_color="#00CED1",  # Голубой цвет кнопки
+                                 hover_color="#87CEEB",  # Светло-голубой эффект при наведении
                                  text="Remove String",
                                  command=button_event)
 button.place(relx=0.5, rely=0.75, anchor=tkinter.CENTER)
