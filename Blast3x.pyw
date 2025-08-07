@@ -3,75 +3,84 @@ import pymem.process
 import customtkinter
 import tkinter
 
-# Устанавливаем тёмную тему, так как "#000000" не является валидным параметром
 customtkinter.set_appearance_mode("Dark")
 
 app = customtkinter.CTk()
-# app.configure(bg="black") # Этот параметр не нужен при использовании темы
-app.geometry("700x300")
+app.geometry("700x350")  # Немного увеличим высоту для статус-бара
 app.title("GITHUB.COM/BLAST3X     |     THIS TOOL IS FREE")
 
 label = customtkinter.CTkLabel(master=app, text="MADE BY GITHUB.COM/BLAST3X", text_color="#FF0000")
 label.place(relx=0.5, rely=0.1, anchor=tkinter.CENTER)
 
-# Изменили placeholder, чтобы было понятно, что нужно вводить PID
+# Изменили placeholder, чтобы было понятно, что нужно вводить имя процесса
 entry = customtkinter.CTkEntry(master=app,
-                               placeholder_text="Process ID (PID)",
-                               width=120,
+                               placeholder_text="Process Name (e.g. notepad.exe)",
+                               width=220,  # Увеличим ширину
                                height=25,
                                border_width=2,
                                corner_radius=10)
-entry.place(relx=0.5, rely=0.2, anchor=tkinter.CENTER)
+entry.place(relx=0.5, rely=0.25, anchor=tkinter.CENTER)
 
 entry1 = customtkinter.CTkEntry(master=app,
-                                placeholder_text="memory address",
-                                width=120,
+                                placeholder_text="Memory Address (e.g. 0x140AC30)",
+                                width=220,
                                 height=25,
                                 border_width=2,
                                 corner_radius=10)
 entry1.place(relx=0.5, rely=0.4, anchor=tkinter.CENTER)
 
 entry2 = customtkinter.CTkEntry(master=app,
-                                placeholder_text="length",
-                                width=120,
+                                placeholder_text="Length (number of bytes)",
+                                width=220,
                                 height=25,
                                 border_width=2,
                                 corner_radius=10)
-entry2.place(relx=0.5, rely=0.6, anchor=tkinter.CENTER)
+entry2.place(relx=0.5, rely=0.55, anchor=tkinter.CENTER)
+
+# Метка для вывода статуса операции
+status_label = customtkinter.CTkLabel(master=app, text="", text_color="white")
+status_label.place(relx=0.5, rely=0.9, anchor=tkinter.CENTER)
 
 def button_event():
+    # Сбрасываем статус
+    status_label.configure(text="", text_color="white")
+
     try:
-        # Получаем данные из полей ввода
-        # entry.get() теперь содержит PID процесса
-        process_id = int(entry.get())
+        process_name = entry.get()
+        if not process_name:
+            status_label.configure(text="Error: Process name cannot be empty.", text_color="#FF5733")
+            return
+
         address = int(entry1.get(), 0) # base=0 позволяет вводить hex (0x...) и dec
         length = int(entry2.get())
 
-        print(f"Attempting to modify PID: {process_id}")
-        print(f"Address: {hex(address)}")
-        print(f"Length: {length}")
+        status_label.configure(text=f"Searching for process: {process_name}...", text_color="yellow")
+        app.update_idletasks() # Обновляем GUI, чтобы показать сообщение
 
-        # Открываем процесс по его PID
-        pm = pymem.Pymem(process_id)
+        # Открываем процесс по его имени
+        pm = pymem.Pymem(process_name)
 
-        # Создаем последовательность нулевых байтов для "удаления" строки
-        # Это более правильный способ, чем запись точек
+        status_label.configure(text=f"Process found! PID: {pm.process_id}. Writing memory...", text_color="cyan")
+        app.update_idletasks()
+
+        # Создаем последовательность нулевых байтов
         null_bytes = b'\x00' * length
 
         # Записываем байты в память по указанному адресу
         pm.write_bytes(address, null_bytes, length)
 
-        print(f"Success! Wrote {length} null bytes to address {hex(address)} in PID {process_id}.")
+        success_message = f"Success! Wrote {length} null bytes to {hex(address)}."
+        status_label.configure(text=success_message, text_color="#00FF00") # Зеленый цвет для успеха
 
-    # Обработка возможных ошибок, чтобы приложение не падало
     except ValueError:
-        print("Error: PID and length must be integers. Address can be integer or hex (e.g., 0x...).")
+        status_label.configure(text="Error: Invalid address or length. Please enter numbers.", text_color="#FF5733")
     except pymem.exception.ProcessNotFound:
-        print(f"Error: Process with PID {entry.get()} not found.")
+        status_label.configure(text=f"Error: Process '{entry.get()}' not found.", text_color="#FF5733")
     except pymem.exception.MemoryWriteError:
-        print(f"Error: Could not write to memory address {entry1.get()}. It might be protected.")
+        error_msg = f"Error: Could not write to {entry1.get()}.\nTry running the script as an Administrator."
+        status_label.configure(text=error_msg, text_color="#FF5733")
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        status_label.configure(text=f"An unexpected error occurred: {e}", text_color="#FF5733")
 
 
 button = customtkinter.CTkButton(master=app,
@@ -84,5 +93,5 @@ button = customtkinter.CTkButton(master=app,
                                  text="Remove String",
                                  command=button_event)
 
-button.place(relx=0.5, rely=0.8, anchor=tkinter.CENTER)
+button.place(relx=0.5, rely=0.75, anchor=tkinter.CENTER)
 app.mainloop()
