@@ -3,92 +3,112 @@ import pymem.process
 import customtkinter
 import tkinter
 
-# ИЗМЕНЕНИЕ №1: Устанавливаем светлую тему
-customtkinter.set_appearance_mode("light") 
-
+# --- Настройка окна ---
+customtkinter.set_appearance_mode("light")  # Светлая тема для "тяночного" стиля
 app = customtkinter.CTk()
-# ИЗМЕНЕНИЕ №2: Устанавливаем светлый фон для окна
-app.configure(fg_color="#ECECEC") # Светло-серый фон
-app.geometry("700x400") # Увеличил высоту для строки статуса
-app.title("GITHUB.COM/BLAST3X     |     THIS TOOL IS FREE")
+app.configure(bg="#FFF0F5")  # Резервный светло-розовый фон
+app.geometry("700x400")  # Сделал окно чуть выше для статус-бара
+app.title("spastil DarkFred     |     THIS TOOL IS FREE")
 
-# ИЗМЕНЕНИЕ №3: Яркий цвет для заголовка
-# Используем яркий синий вместо красного для разнообразия
-label_title = customtkinter.CTkLabel(master=app, 
-                                     text="MADE BY GITHUB.COM/BLAST3X", 
-                                     text_color="#0052cc", # Яркий синий
-                                     font=("Arial", 20, "bold"))
+# --- Установка фона с изображением ---
+def set_background(image_path):
+    try:
+        from PIL import Image, ImageTk
+        import os
+        if os.path.exists(image_path):
+            img = Image.open(image_path)
+            img = img.resize((700, 400), Image.Resampling.LANCZOS)
+            photo = ImageTk.PhotoImage(img)
+            bg_label = tkinter.Label(app, image=photo)
+            bg_label.image = photo  # Сохраняем ссылку
+            bg_label.place(x=0, y=0, relwidth=1, relheight=1)
+        else:
+            print(f"Изображение не найдено по пути: {image_path}")
+    except Exception as e:
+        print(f"Ошибка загрузки фона: {e}")
+
+# Укажите путь к изображению "тяночки" (замените на свой файл)
+background_image = "C:/Users/yaric/tyanochka.png"  # Замените на реальный путь!
+set_background(background_image)
+
+# --- Элементы интерфейса ---
+label_title = customtkinter.CTkLabel(master=app, text="spastil DarkFred", text_color="#FF69B4", font=("Arial", 20))
 label_title.place(relx=0.5, rely=0.1, anchor=tkinter.CENTER)
 
-# --- Поля для ввода (они автоматически станут светлыми) ---
-entry_proc = customtkinter.CTkEntry(master=app,
-                                    placeholder_text="process_name.exe",
-                                    width=200,
-                                    height=30,
-                                    border_width=1)
-entry_proc.place(relx=0.5, rely=0.25, anchor=tkinter.CENTER)
+entry_pid = customtkinter.CTkEntry(master=app,
+                                   placeholder_text="PID процесса",
+                                   width=150,
+                                   height=30,
+                                   border_width=2,
+                                   corner_radius=10,
+                                   border_color="#00CED1")  # Голубая рамка
+entry_pid.place(relx=0.5, rely=0.25, anchor=tkinter.CENTER)
 
 entry_address = customtkinter.CTkEntry(master=app,
                                        placeholder_text="Адрес в памяти (напр. 0x123ABC)",
-                                       width=200,
+                                       width=150,
                                        height=30,
-                                       border_width=1)
+                                       border_width=2,
+                                       corner_radius=10,
+                                       border_color="#00CED1")
 entry_address.place(relx=0.5, rely=0.4, anchor=tkinter.CENTER)
 
 entry_length = customtkinter.CTkEntry(master=app,
                                       placeholder_text="Длина для перезаписи",
-                                      width=200,
+                                      width=150,
                                       height=30,
-                                      border_width=1)
+                                      border_width=2,
+                                      corner_radius=10,
+                                      border_color="#00CED1")
 entry_length.place(relx=0.5, rely=0.55, anchor=tkinter.CENTER)
 
-# Строка статуса для обратной связи
-status_label = customtkinter.CTkLabel(master=app, text="Статус: ожидание ввода", text_color="grey")
+# Добавим метку для отображения статуса операции
+status_label = customtkinter.CTkLabel(master=app, text="Статус: ожидание ввода (04:43 PM EEST, Aug 07, 2025)", text_color="grey")
 status_label.place(relx=0.5, rely=0.9, anchor=tkinter.CENTER)
 
-# ИЗМЕНЕНИЕ №4 (ВАЖНОЕ): Полностью исправленная логика кнопки
+# Логика кнопки
 def button_event():
-    proc_name = entry_proc.get()
     try:
-        address = int(entry_address.get(), 0)
-        length = int(entry_length.get(), 0)
+        pid = int(entry_pid.get())  # Конвертируем PID в число
+        address = int(entry_address.get(), 0)  # 0 позволяет вводить hex (0x...)
+        length = int(entry_length.get())  # Длина как десятичное число
     except ValueError:
-        status_label.configure(text="Ошибка: Адрес и длина должны быть числами.", text_color="orange")
-        return
-
-    if not proc_name or not address or not length:
-        status_label.configure(text="Ошибка: Все поля должны быть заполнены.", text_color="orange")
+        status_label.configure(text="Ошибка: PID и длина должны быть числами.", text_color="orange")
         return
 
     try:
-        pm = pymem.Pymem(proc_name)
-        status_label.configure(text=f"Процесс '{proc_name}' (PID: {pm.process_id}) найден.", text_color="#0b5ed7") # Информационный синий
+        pm = pymem.Pymem(pid)
+        status_label.configure(text=f"Процесс '{pm.process_name}' (PID: {pid}) найден.", text_color="cyan")
         app.update_idletasks()
-        
+
+        # Готовим данные для записи
         replacement_bytes = b'.' * length
         
-        # Самая важная часть - запись в память
+        # Перезаписываем память
         pm.write_bytes(address, replacement_bytes, length)
         
-        status_label.configure(text=f"УСПЕХ! {length} байт по адресу {hex(address)} перезаписано.", text_color="#157347") # Успешный зеленый
+        # Читаем обратно для проверки с улучшенной обработкой
+        read_buffer = pm.read_bytes(address, length)
+        current_string = ''.join(c if ord(c) < 128 else '.' for c in read_buffer.decode('ascii', errors='ignore'))  # Убираем некорректные символы
+        print(f"Отладка: Прочитано из памяти: {read_buffer.hex()} -> {current_string}")  # Отладочный вывод
+        status_label.configure(text=f"УСПЕХ! {length} байт по адресу {hex(address)} перезаписано. Текущее: {current_string}", text_color="green")
 
     except pymem.exception.ProcessNotFound:
-        status_label.configure(text=f"Ошибка: Процесс '{proc_name}' не найден.", text_color="#dc3545") # Опасный красный
+        status_label.configure(text=f"Ошибка: Процесс с PID {pid} не найден.", text_color="red")
     except pymem.exception.MemoryWriteError:
-        status_label.configure(text=f"Ошибка: Не удалось записать в память. Адрес защищен?", text_color="#dc3545")
+        status_label.configure(text=f"Ошибка: Не удалось записать в память. Адрес защищен?", text_color="red")
     except Exception as e:
-        status_label.configure(text=f"Неизвестная ошибка: {e}", text_color="#dc3545")
+        status_label.configure(text=f"Неизвестная ошибка: {e}", text_color="red")
 
-# ИЗМЕНЕНИЕ №5: Новые цвета для кнопки
 button = customtkinter.CTkButton(master=app,
-                                 width=150,
-                                 height=40,
+                                 width=120,
+                                 height=32,
+                                 border_width=0,
+                                 corner_radius=8,
+                                 fg_color="#00CED1",
+                                 hover_color="#87CEEB",
                                  text="Remove String",
-                                 command=button_event,
-                                 fg_color="#d32f2f",      # Яркий, но не кричащий красный
-                                 hover_color="#b71c1c",    # Более темный красный при наведении
-                                 text_color="white",      # Белый текст на кнопке
-                                 font=("Arial", 14, "bold"))
+                                 command=button_event)
 button.place(relx=0.5, rely=0.75, anchor=tkinter.CENTER)
 
 app.mainloop()
