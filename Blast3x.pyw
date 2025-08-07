@@ -1,115 +1,80 @@
 import pymem
-import pymem.exception
 import customtkinter
 import tkinter
 
-# --- НАСТРОЙКИ ОКНА ---
 customtkinter.set_appearance_mode("Dark")
-customtkinter.set_default_color_theme("blue")
 
 app = customtkinter.CTk()
-app.geometry("700x450") # Увеличим высоту для новых элементов
-app.title("GITHUB.COM/BLAST3X | Memory Patcher v2")
+app.geometry("700x400")
+app.title("GITHUB.COM/BLAST3X | THIS TOOL IS FREE")
+app.resizable(False, False)
 
-# --- ВИДЖЕТЫ ИНТЕРФЕЙСА ---
+# Метка вверху
+label_top = customtkinter.CTkLabel(master=app, text="MADE BY GITHUB.COM/BLAST3X", text_color="#FF0000")
+label_top.place(relx=0.5, rely=0.05, anchor=tkinter.CENTER)
 
-# Заголовок
-title_label = customtkinter.CTkLabel(master=app, text="MADE BY GITHUB.COM/BLAST3X", text_color="#FF0000", font=("Arial", 16, "bold"))
-title_label.place(relx=0.5, rely=0.08, anchor=tkinter.CENTER)
+# Метки для полей ввода
+label_proc = customtkinter.CTkLabel(master=app, text="Process name (e.g., notepad.exe):", text_color="#FFFFFF")
+label_proc.place(relx=0.3, rely=0.15, anchor=tkinter.E)
 
-# --- НОВОЕ: Блок для поиска PID по имени процесса ---
-proc_name_label = customtkinter.CTkLabel(master=app, text="1. Найти процесс по имени (.exe)")
-proc_name_label.place(relx=0.5, rely=0.2, anchor=tkinter.CENTER)
+label_addr = customtkinter.CTkLabel(master=app, text="Memory address (hex, e.g., 0x10000000):", text_color="#FFFFFF")
+label_addr.place(relx=0.3, rely=0.25, anchor=tkinter.E)
 
-entry_proc_name = customtkinter.CTkEntry(master=app,
-                                         placeholder_text="Например, notepad.exe",
-                                         width=200, height=30)
-entry_proc_name.place(relx=0.4, rely=0.28, anchor=tkinter.CENTER)
+label_len = customtkinter.CTkLabel(master=app, text="Length (e.g., 10):", text_color="#FFFFFF")
+label_len.place(relx=0.3, rely=0.35, anchor=tkinter.E)
 
-# --- НОВОЕ: Функция для поиска PID ---
-def find_pid_event():
-    proc_name = entry_proc_name.get()
-    if not proc_name:
-        status_label.configure(text="Введите имя процесса!", text_color="orange")
-        return
+# Поля ввода
+entry_proc = customtkinter.CTkEntry(master=app, width=200, placeholder_text="notepad.exe")
+entry_proc.place(relx=0.5, rely=0.15, anchor=tkinter.CENTER)
+
+entry_addr = customtkinter.CTkEntry(master=app, width=200, placeholder_text="0x10000000")
+entry_addr.place(relx=0.5, rely=0.25, anchor=tkinter.CENTER)
+
+entry_len = customtkinter.CTkEntry(master=app, width=200, placeholder_text="10")
+entry_len.place(relx=0.5, rely=0.35, anchor=tkinter.CENTER)
+
+# Текстовое поле для результата
+result_text = customtkinter.CTkTextbox(master=app, width=400, height=100)
+result_text.place(relx=0.5, rely=0.65, anchor=tkinter.CENTER)
+
+# Функция для кнопки
+def button_event():
+    process_name = entry_proc.get()
+    address_str = entry_addr.get()
+    length_str = entry_len.get()
+
+    # Проверка корректности ввода
     try:
-        # Находим процесс по имени
-        process = pymem.process.process_from_name(proc_name)
-        pid = process.process_id
-        # Очищаем поле для PID и вставляем найденное значение
-        entry_pid.delete(0, 'end')
-        entry_pid.insert(0, str(pid))
-        status_label.configure(text=f"Процесс '{proc_name}' найден! PID: {pid}", text_color="green")
-    except pymem.exception.ProcessNotFound:
-        status_label.configure(text=f"Процесс '{proc_name}' не найден!", text_color="red")
-
-find_pid_button = customtkinter.CTkButton(master=app,
-                                          text="Найти PID",
-                                          command=find_pid_event,
-                                          width=100, height=30)
-find_pid_button.place(relx=0.65, rely=0.28, anchor=tkinter.CENTER)
-
-# --- Блок для перезаписи памяти ---
-write_label = customtkinter.CTkLabel(master=app, text="2. Перезаписать память по PID и адресу")
-write_label.place(relx=0.5, rely=0.4, anchor=tkinter.CENTER)
-
-entry_pid = customtkinter.CTkEntry(master=app,
-                                   placeholder_text="Process ID (PID)",
-                                   width=200, height=30)
-entry_pid.place(relx=0.5, rely=0.48, anchor=tkinter.CENTER)
-
-entry_address = customtkinter.CTkEntry(master=app,
-                                       placeholder_text="Адрес памяти (например, 0x1A2B3C)",
-                                       width=200, height=30)
-entry_address.place(relx=0.5, rely=0.58, anchor=tkinter.CENTER)
-
-entry_length = customtkinter.CTkEntry(master=app,
-                                      placeholder_text="Длина (сколько байт затереть)",
-                                      width=200, height=30)
-entry_length.place(relx=0.5, rely=0.68, anchor=tkinter.CENTER)
-
-# --- Основная функция перезаписи ---
-def overwrite_memory_event():
-    try:
-        pid = int(entry_pid.get())
-        address = int(entry_address.get(), 0) # 0 - автоопределение системы (10 или 16)
-        length = int(entry_length.get())
-
+        address = int(address_str, 16)  # Преобразование hex-адреса
+        length = int(length_str)        # Преобразование длины
         if length <= 0:
-            status_label.configure(text="Длина должна быть больше нуля!", text_color="orange")
-            return
-            
-        pm = pymem.Pymem(pid)
-        
-        # Создаем байтовую строку из точек для записи
-        bytes_to_write = b'.' * length
-        
-        pm.write_bytes(address, bytes_to_write, length)
-        
-        success_message = f"Успех! Записано {length} байт в PID {pid} по адресу 0x{address:X}"
-        print(success_message)
-        status_label.configure(text=success_message, text_color="green")
+            raise ValueError("Length must be positive")
+    except ValueError as e:
+        result_text.delete("1.0", tkinter.END)
+        result_text.insert("1.0", f"Error: Invalid address or length ({str(e)})")
+        return
 
-    except ValueError:
-        status_label.configure(text="Ошибка: PID, адрес и длина должны быть числами.", text_color="red")
-    except pymem.exception.ProcessNotFound:
-        status_label.configure(text=f"Ошибка: Процесс с PID {entry_pid.get()} не найден.", text_color="red")
-    except pymem.exception.CouldNotOpenProcess:
-        status_label.configure(text=f"Ошибка доступа к PID {entry_pid.get()}. Запустите от имени Администратора.", text_color="red")
+    # Работа с процессом
+    try:
+        pm = pymem.Pymem(process_name)  # Открытие процесса
+        rs = pm.read_string(address, length)  # Чтение строки
+        rb = pm.read_bytes(address, length)   # Чтение байтов
+        result_text.delete("1.0", tkinter.END)
+        result_text.insert("1.0", f"Read string: {rs}\nRead bytes: {rb}")
     except Exception as e:
-        status_label.configure(text=f"Произошла ошибка: {e}", text_color="red")
+        result_text.delete("1.0", tkinter.END)
+        result_text.insert("1.0", f"Error: {str(e)}")
 
-# Кнопка для запуска перезаписи
-overwrite_button = customtkinter.CTkButton(master=app,
-                                           text="Перезаписать память",
-                                           command=overwrite_memory_event,
-                                           width=200, height=40,
-                                           fg_color="#FF0000", hover_color="#C00000")
-overwrite_button.place(relx=0.5, rely=0.82, anchor=tkinter.CENTER)
+# Кнопка
+button = customtkinter.CTkButton(master=app, 
+                                width=120,
+                                height=32,
+                                border_width=0,
+                                corner_radius=8,
+                                fg_color="#FF0000",
+                                hover_color="#6A6767",
+                                text="Read Data",
+                                command=button_event)
+button.place(relx=0.5, rely=0.45, anchor=tkinter.CENTER)
 
-# Метка для вывода статуса
-status_label = customtkinter.CTkLabel(master=app, text="Ожидание действий...", font=("Arial", 12))
-status_label.place(relx=0.5, rely=0.93, anchor=tkinter.CENTER)
-
-# Запуск главного цикла приложения
 app.mainloop()
