@@ -1,80 +1,88 @@
 import pymem
+import pymem.process
 import customtkinter
 import tkinter
 
+# Устанавливаем тёмную тему, так как "#000000" не является валидным параметром
 customtkinter.set_appearance_mode("Dark")
 
 app = customtkinter.CTk()
-app.geometry("700x400")
-app.title("GITHUB.COM/BLAST3X | THIS TOOL IS FREE")
-app.resizable(False, False)
+# app.configure(bg="black") # Этот параметр не нужен при использовании темы
+app.geometry("700x300")
+app.title("GITHUB.COM/BLAST3X     |     THIS TOOL IS FREE")
 
-# Метка вверху
-label_top = customtkinter.CTkLabel(master=app, text="MADE BY GITHUB.COM/BLAST3X", text_color="#FF0000")
-label_top.place(relx=0.5, rely=0.05, anchor=tkinter.CENTER)
+label = customtkinter.CTkLabel(master=app, text="MADE BY GITHUB.COM/BLAST3X", text_color="#FF0000")
+label.place(relx=0.5, rely=0.1, anchor=tkinter.CENTER)
 
-# Метки для полей ввода
-label_proc = customtkinter.CTkLabel(master=app, text="Process name (e.g., notepad.exe):", text_color="#FFFFFF")
-label_proc.place(relx=0.3, rely=0.15, anchor=tkinter.E)
+# Изменили placeholder, чтобы было понятно, что нужно вводить PID
+entry = customtkinter.CTkEntry(master=app,
+                               placeholder_text="Process ID (PID)",
+                               width=120,
+                               height=25,
+                               border_width=2,
+                               corner_radius=10)
+entry.place(relx=0.5, rely=0.2, anchor=tkinter.CENTER)
 
-label_addr = customtkinter.CTkLabel(master=app, text="Memory address (hex, e.g., 0x10000000):", text_color="#FFFFFF")
-label_addr.place(relx=0.3, rely=0.25, anchor=tkinter.E)
-
-label_len = customtkinter.CTkLabel(master=app, text="Length (e.g., 10):", text_color="#FFFFFF")
-label_len.place(relx=0.3, rely=0.35, anchor=tkinter.E)
-
-# Поля ввода
-entry_proc = customtkinter.CTkEntry(master=app, width=200, placeholder_text="notepad.exe")
-entry_proc.place(relx=0.5, rely=0.15, anchor=tkinter.CENTER)
-
-entry_addr = customtkinter.CTkEntry(master=app, width=200, placeholder_text="0x10000000")
-entry_addr.place(relx=0.5, rely=0.25, anchor=tkinter.CENTER)
-
-entry_len = customtkinter.CTkEntry(master=app, width=200, placeholder_text="10")
-entry_len.place(relx=0.5, rely=0.35, anchor=tkinter.CENTER)
-
-# Текстовое поле для результата
-result_text = customtkinter.CTkTextbox(master=app, width=400, height=100)
-result_text.place(relx=0.5, rely=0.65, anchor=tkinter.CENTER)
-
-# Функция для кнопки
-def button_event():
-    process_name = entry_proc.get()
-    address_str = entry_addr.get()
-    length_str = entry_len.get()
-
-    # Проверка корректности ввода
-    try:
-        address = int(address_str, 16)  # Преобразование hex-адреса
-        length = int(length_str)        # Преобразование длины
-        if length <= 0:
-            raise ValueError("Length must be positive")
-    except ValueError as e:
-        result_text.delete("1.0", tkinter.END)
-        result_text.insert("1.0", f"Error: Invalid address or length ({str(e)})")
-        return
-
-    # Работа с процессом
-    try:
-        pm = pymem.Pymem(process_name)  # Открытие процесса
-        rs = pm.read_string(address, length)  # Чтение строки
-        rb = pm.read_bytes(address, length)   # Чтение байтов
-        result_text.delete("1.0", tkinter.END)
-        result_text.insert("1.0", f"Read string: {rs}\nRead bytes: {rb}")
-    except Exception as e:
-        result_text.delete("1.0", tkinter.END)
-        result_text.insert("1.0", f"Error: {str(e)}")
-
-# Кнопка
-button = customtkinter.CTkButton(master=app, 
+entry1 = customtkinter.CTkEntry(master=app,
+                                placeholder_text="memory address",
                                 width=120,
-                                height=32,
-                                border_width=0,
-                                corner_radius=8,
-                                fg_color="#FF0000",
-                                hover_color="#6A6767",
-                                text="Read Data",
-                                command=button_event)
-button.place(relx=0.5, rely=0.45, anchor=tkinter.CENTER)
+                                height=25,
+                                border_width=2,
+                                corner_radius=10)
+entry1.place(relx=0.5, rely=0.4, anchor=tkinter.CENTER)
 
+entry2 = customtkinter.CTkEntry(master=app,
+                                placeholder_text="length",
+                                width=120,
+                                height=25,
+                                border_width=2,
+                                corner_radius=10)
+entry2.place(relx=0.5, rely=0.6, anchor=tkinter.CENTER)
+
+def button_event():
+    try:
+        # Получаем данные из полей ввода
+        # entry.get() теперь содержит PID процесса
+        process_id = int(entry.get())
+        address = int(entry1.get(), 0) # base=0 позволяет вводить hex (0x...) и dec
+        length = int(entry2.get())
+
+        print(f"Attempting to modify PID: {process_id}")
+        print(f"Address: {hex(address)}")
+        print(f"Length: {length}")
+
+        # Открываем процесс по его PID
+        pm = pymem.Pymem(process_id)
+
+        # Создаем последовательность нулевых байтов для "удаления" строки
+        # Это более правильный способ, чем запись точек
+        null_bytes = b'\x00' * length
+
+        # Записываем байты в память по указанному адресу
+        pm.write_bytes(address, null_bytes, length)
+
+        print(f"Success! Wrote {length} null bytes to address {hex(address)} in PID {process_id}.")
+
+    # Обработка возможных ошибок, чтобы приложение не падало
+    except ValueError:
+        print("Error: PID and length must be integers. Address can be integer or hex (e.g., 0x...).")
+    except pymem.exception.ProcessNotFound:
+        print(f"Error: Process with PID {entry.get()} not found.")
+    except pymem.exception.MemoryWriteError:
+        print(f"Error: Could not write to memory address {entry1.get()}. It might be protected.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+
+button = customtkinter.CTkButton(master=app,
+                                 width=120,
+                                 height=32,
+                                 border_width=0,
+                                 corner_radius=8,
+                                 fg_color="#FF0000",
+                                 hover_color="#6A6767",
+                                 text="Remove String",
+                                 command=button_event)
+
+button.place(relx=0.5, rely=0.8, anchor=tkinter.CENTER)
 app.mainloop()
