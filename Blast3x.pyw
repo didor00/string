@@ -1,61 +1,126 @@
 import pymem
 import customtkinter
 import tkinter
+from pymem.process import PROCESS_ALL_ACCESS
 
+# Set dark theme with custom appearance
 customtkinter.set_appearance_mode("dark")
+customtkinter.set_default_color_theme("blue")
 
+# Initialize main window
 app = customtkinter.CTk()
-app.configure(bg="black")
-app.geometry("700x300")
-app.title("GITHUB.COM/BLAST3X     |     THIS TOOL IS FREE")
+app.geometry("800x400")
+app.title("Memory Editor | github.com/BLAST3X")
+app.resizable(False, False)
 
-label = customtkinter.CTkLabel(master=app, text="MADE BY GITHUB.COM/BLAST3X", text_color="#FF0000")
-label.place(relx=0.5, rely=0.1, anchor=tkinter.CENTER)
+# Create frame for better organization
+main_frame = customtkinter.CTkFrame(master=app, corner_radius=10)
+main_frame.place(relx=0.5, rely=0.5, anchor=tkinter.CENTER, relwidth=0.9, relheight=0.9)
 
-entry = customtkinter.CTkEntry(master=app, placeholder_text="process name", width=120, height=25, border_width=2, corner_radius=10)
-entry.place(relx=0.5, rely=0.2, anchor=tkinter.CENTER)
+# Title label
+title_label = customtkinter.CTkLabel(
+    master=main_frame,
+    text="Memory Editor by github.com/BLAST3X",
+    font=("Arial", 20, "bold"),
+    text_color="#FF5555"
+)
+title_label.pack(pady=20)
 
-entry1 = customtkinter.CTkEntry(master=app, placeholder_text="memory address (hex)", width=120, height=25, border_width=2, corner_radius=10)
-entry1.place(relx=0.5, rely=0.4, anchor=tkinter.CENTER)
+# PID Entry
+pid_entry = customtkinter.CTkEntry(
+    master=main_frame,
+    placeholder_text="Enter Process ID (PID)",
+    width=300,
+    height=35,
+    font=("Arial", 14),
+    corner_radius=10,
+    border_color="#FF5555"
+)
+pid_entry.pack(pady=10)
 
-entry2 = customtkinter.CTkEntry(master=app, placeholder_text="length", width=120, height=25, border_width=2, corner_radius=10)
-entry2.place(relx=0.5, rely=0.6, anchor=tkinter.CENTER)
+# Memory Address Entry
+address_entry = customtkinter.CTkEntry(
+    master=main_frame,
+    placeholder_text="Memory Address (hex)",
+    width=300,
+    height=35,
+    font=("Arial", 14),
+    corner_radius=10,
+    border_color="#FF5555"
+)
+address_entry.pack(pady=10)
 
-def button_event():
+# Length Entry
+length_entry = customtkinter.CTkEntry(
+    master=main_frame,
+    placeholder_text="Length of bytes",
+    width=300,
+    height=35,
+    font=("Arial", 14),
+    corner_radius=10,
+    border_color="#FF5555"
+)
+length_entry.pack(pady=10)
+
+# Status Label
+status_label = customtkinter.CTkLabel(
+    master=main_frame,
+    text="",
+    font=("Arial", 12),
+    text_color="#55FF55"
+)
+status_label.pack(pady=10)
+
+def remove_string():
     try:
-        procname = entry.get()
-        address = int(entry1.get(), 0)  # Поддержка шестнадцатеричного формата (например, 0x1234)
-        length = int(entry2.get(), 0)
-        
-        # Находим процесс по имени
-        pm = pymem.Pymem()
-        process_id = None
-        for proc in pymem.process.list_processes():
-            if proc.name.lower() == procname.lower():
-                process_id = proc.pid
-                break
-        
-        if not process_id:
-            print(f"Процесс {procname} не найден")
+        # Get input values
+        pid = int(pid_entry.get())
+        address = int(address_entry.get(), 16)  # Convert hex string to int
+        length = int(length_entry.get())
+
+        # Validate inputs
+        if length <= 0:
+            status_label.configure(text="Error: Length must be positive", text_color="#FF5555")
             return
-        
-        # Открываем процесс
-        handle = pymem.Pymem(procname)
-        
-        # Читаем текущую строку
-        current_string = pymem.memory.read_string(handle.process_handle, address, length)
-        print(f"Текущая строка: {current_string}")
-        
-        # Заменяем строку на точки
-        new_value = "." * length
-        pymem.memory.write_string(handle.process_handle, address, new_value.encode())
-        print(f"Строка по адресу {hex(address)} заменена на {new_value}")
-        
+
+        # Open process
+        pm = pymem.Pymem()
+        pm.open_process(pid)
+
+        try:
+            # Read original bytes
+            original_bytes = pm.read_bytes(address, length)
+            original_string = original_bytes.decode('utf-8', errors='ignore')
+            
+            # Create replacement bytes (dots)
+            replacement = b'.' * length
+            
+            # Write dots to memory
+            pm.write_bytes(address, replacement, length)
+            
+            status_label.configure(
+                text=f"Success! Replaced {length} bytes\nOriginal: {original_string}",
+                text_color="#55FF55"
+            )
+            
+        finally:
+            pm.close_process()
+            
     except Exception as e:
-        print(f"Ошибка: {e}")
+        status_label.configure(text=f"Error: {str(e)}", text_color="#FF5555")
 
-button = customtkinter.CTkButton(master=app, width=120, height=32, border_width=0, corner_radius=8,
-                                fg_color="#FF0000", hover_color="#6A6767", text="remove string", command=button_event)
-button.place(relx=0.5, rely=0.8, anchor=tkinter.CENTER)
+# Action Button
+action_button = customtkinter.CTkButton(
+    master=main_frame,
+    text="Remove String",
+    width=200,
+    height=40,
+    font=("Arial", 14, "bold"),
+    fg_color="#FF5555",
+    hover_color="#CC4444",
+    command=remove_string
+)
+action_button.pack(pady=20)
 
+# Start main loop
 app.mainloop()
