@@ -14,21 +14,23 @@ app.title("spastil DarkFred | THIS TOOL IS FREE")
 # --- Установка фона с изображением ---
 def set_background(image_path):
     try:
-        # Открываем изображение
-        img = Image.open(image_path)
-        # Изменяем размер изображения под окно
-        img = img.resize((700, 400), Image.Resampling.LANCZOS)
-        photo = ImageTk.PhotoImage(img)
-        # Создаем метку для фона
-        bg_label = tk.Label(app, image=photo)
-        bg_label.image = photo  # Сохраняем ссылку, чтобы избежать сборки мусора
-        bg_label.place(x=0, y=0, relwidth=1, relheight=1)
+        if os.path.exists(image_path):
+            img = Image.open(image_path)
+            img = img.resize((700, 400), Image.Resampling.LANCZOS)
+            photo = ImageTk.PhotoImage(img)
+            bg_label = tk.Label(app, image=photo)
+            bg_label.image = photo  # Сохраняем ссылку
+            bg_label.place(x=0, y=0, relwidth=1, relheight=1)
+        else:
+            print(f"Изображение не найдено по пути: {image_path}")
+            app.configure(bg="#FFF0F5")  # Резервный светло-розовый фон
     except Exception as e:
         print(f"Ошибка загрузки фона: {e}")
-        app.configure(bg="#FFF0F5")  # Резервный фон, если изображение не загрузилось
+        app.configure(bg="#FFF0F5")  # Резервный фон при ошибке
 
 # Укажите путь к изображению "тяночки" (замените на свой файл)
-background_image = "path/to/your/tyanochka_image.png"  # Замените на путь к файлу
+# Пример: замените на "C:/Users/yaric/tyanochka.png"
+background_image = "C:/Users/yaric/tyanochka.png"  # Укажите реальный путь!
 set_background(background_image)
 
 # --- Элементы интерфейса ---
@@ -44,14 +46,14 @@ entry_address.place(relx=0.5, rely=0.4, anchor=tk.CENTER)
 entry_length = ctk.CTkEntry(master=app, placeholder_text="Длина для перезаписи", width=150, height=30, border_width=2, corner_radius=10)
 entry_length.place(relx=0.5, rely=0.55, anchor=tk.CENTER)
 
-status_label = ctk.CTkLabel(master=app, text="Статус: ожидание ввода", text_color="grey")
+status_label = ctk.CTkLabel(master=app, text="Статус: ожидание ввода (04:31 PM EEST, Aug 07, 2025)", text_color="grey")
 status_label.place(relx=0.5, rely=0.9, anchor=tk.CENTER)
 
 # --- Логика кнопки ---
 def button_event():
     try:
         pid = int(entry_pid.get())
-        address = int(entry_address.get(), 16)  # Используем 16 для явного шестнадцатеричного формата
+        address = int(entry_address.get(), 16)  # Явно шестнадцатеричный формат
         length = int(entry_length.get())
     except ValueError:
         status_label.configure(text="Ошибка: PID и длина должны быть числами.", text_color="orange")
@@ -62,15 +64,11 @@ def button_event():
         status_label.configure(text=f"Процесс '{pm.process_name}' (PID: {pid}) найден.", text_color="cyan")
         app.update_idletasks()
 
-        # Готовим данные для записи
         replacement_bytes = b'.' * length
-        
-        # Перезаписываем память
         pm.write_bytes(address, replacement_bytes, length)
         
-        # Читаем обратно для проверки (с обработкой некорректных данных)
         read_buffer = pm.read_bytes(address, length)
-        current_string = read_buffer.decode('ascii', errors='replace').replace('\x00', '.')  # Заменяем некорректные байты
+        current_string = read_buffer.decode('ascii', errors='replace').replace('\x00', '.')  # Обработка некорректных байтов
         status_label.configure(text=f"УСПЕХ! {length} байт по адресу {hex(address)} перезаписано. Текущее: {current_string}", text_color="green")
 
     except pymem.exception.ProcessNotFound:
