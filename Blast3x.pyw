@@ -3,102 +3,109 @@ import pymem.exception
 import customtkinter
 import tkinter
 
-# --- НАСТРОЙКА ИНТЕРФЕЙСА ---
-customtkinter.set_appearance_mode("dark") # Рекомендуется использовать "dark" или "light" вместо HEX
-customtkinter.set_default_color_theme("blue")
+# Устанавливаем темную тему для окна
+customtkinter.set_appearance_mode("Dark")
+customtkinter.set_default_color_theme("blue") # Можно выбрать "blue", "green" или "dark-blue"
 
 app = customtkinter.CTk()
-app.geometry("700x400") # Немного увеличим высоту для метки статуса
-app.title("GITHUB.COM/BLAST3X     |     THIS TOOL IS FREE")
-# app.configure(bg="black") # CTk делает это автоматически при темной теме
+# app.configure(bg="black") # Это уже не нужно при использовании темы
+app.geometry("700x350") # Немного увеличим высоту для метки состояния
+app.title("GITHUB.COM/BLAST3X | Memory Patcher (by PID)")
 
-label = customtkinter.CTkLabel(master=app, text="MADE BY GITHUB.COM/BLAST3X", text_color="#FF0000", font=("Arial", 16, "bold"))
+label = customtkinter.CTkLabel(master=app, text="MADE BY GITHUB.COM/BLAST3X", text_color="#FF0000")
 label.place(relx=0.5, rely=0.1, anchor=tkinter.CENTER)
 
-entry_process = customtkinter.CTkEntry(master=app,
-                                       placeholder_text="имя процесса (например, notepad.exe)",
-                                       width=250,
-                                       height=30,
-                                       border_width=2,
-                                       corner_radius=10)
-entry_process.place(relx=0.5, rely=0.25, anchor=tkinter.CENTER)
+# --- Изменено: теперь это поле для PID, а не для имени процесса ---
+entry_pid = customtkinter.CTkEntry(master=app,
+                                   placeholder_text="Process ID (PID)",
+                                   width=150,
+                                   height=25,
+                                   border_width=2,
+                                   corner_radius=10)
+entry_pid.place(relx=0.5, rely=0.25, anchor=tkinter.CENTER)
 
 entry_address = customtkinter.CTkEntry(master=app,
-                                       placeholder_text="адрес памяти (например, 0x140A7B0)",
-                                       width=250,
-                                       height=30,
+                                       placeholder_text="Memory Address (e.g. 0x1A2B3C)",
+                                       width=150,
+                                       height=25,
                                        border_width=2,
                                        corner_radius=10)
 entry_address.place(relx=0.5, rely=0.4, anchor=tkinter.CENTER)
 
 entry_length = customtkinter.CTkEntry(master=app,
-                                      placeholder_text="длина для очистки (в байтах)",
-                                      width=250,
-                                      height=30,
+                                      placeholder_text="Length (bytes to overwrite)",
+                                      width=150,
+                                      height=25,
                                       border_width=2,
                                       corner_radius=10)
 entry_length.place(relx=0.5, rely=0.55, anchor=tkinter.CENTER)
 
-# Метка для вывода статуса операции
-status_label = customtkinter.CTkLabel(master=app, text="", font=("Arial", 12))
-status_label.place(relx=0.5, rely=0.9, anchor=tkinter.CENTER)
-
+# Функция, которая будет вызываться при нажатии на кнопку
 def button_event():
-    """
-    Основная функция, которая выполняется при нажатии на кнопку.
-    """
+    # Очищаем метку состояния перед новой операцией
+    status_label.configure(text="")
+    
     try:
-        # 1. Получаем данные из полей ввода
-        procname = entry_process.get()
-        # Проверяем, что поля не пустые
-        if not procname or not entry_address.get() or not entry_length.get():
-            status_label.configure(text="Ошибка: Все поля должны быть заполнены.", text_color="orange")
-            return
-
-        # int(..., 0) позволяет вводить как обычные числа (12345), так и hex (0xABC)
+        # --- ИСПРАВЛЕНО: Получаем значения из полей ---
+        # Получаем PID как число
+        pid = int(entry_pid.get())
+        # Получаем адрес как число (0 означает, что Python сам определит систему счисления, например, 0x для hex)
         address = int(entry_address.get(), 0)
-        length = int(entry_length.get(), 0)
+        # Получаем длину как число
+        length = int(entry_length.get())
 
-        status_label.configure(text=f"Попытка подключиться к процессу: {procname}...", text_color="gray")
-        app.update_idletasks() # Обновляем интерфейс, чтобы показать сообщение
+        # --- ИСПРАВЛЕНО: Открываем процесс по PID ---
+        # Оборачиваем открытие процесса и запись в память в еще один try-except
+        try:
+            # Создаем объект Pymem для работы с процессом
+            pm = pymem.Pymem(pid)
+            
+            # Создаем последовательность байтов для записи (в данном случае - точки)
+            # b'.' создает байтовую строку, а не обычную. Это важно для write_bytes.
+            bytes_to_write = b'.' * length
+            
+            # --- ИСПРАВЛЕНО: Записываем байты в память ---
+            pm.write_bytes(address, bytes_to_write, length)
+            
+            # Выводим сообщение об успехе в GUI
+            success_message = f"Successfully wrote {length} bytes to 0x{address:X} in PID {pid}"
+            print(success_message) # Также выводим в консоль
+            status_label.configure(text=success_message, text_color="green")
 
-        # 2. Открываем процесс по имени
-        pm = pymem.Pymem(procname)
-        status_label.configure(text=f"Успешно подключено. PID: {pm.process_id}", text_color="cyan")
-        app.update_idletasks()
+        except pymem.exception.ProcessNotFound:
+            error_msg = f"Error: Process with PID {pid} not found."
+            print(error_msg)
+            status_label.configure(text=error_msg, text_color="red")
+        except pymem.exception.CouldNotOpenProcess:
+            error_msg = f"Error: Could not open process {pid}. Try running script as Administrator."
+            print(error_msg)
+            status_label.configure(text=error_msg, text_color="red")
+        except Exception as e:
+            # Ловим другие возможные ошибки (например, неправильный адрес, нет доступа к памяти)
+            error_msg = f"An error occurred: {e}"
+            print(error_msg)
+            status_label.configure(text=error_msg, text_color="red")
 
-        # 3. Готовим байты для записи (нулевые байты для "очистки" строки)
-        bytes_to_write = b'\x00' * length
-
-        # 4. Записываем байты по указанному адресу
-        pm.write_bytes(address, bytes_to_write, length)
-        
-        # 5. Сообщаем об успехе
-        status_label.configure(text=f"Успешно! {length} байт(ов) по адресу {hex(address)} заполнено нулями.", text_color="green")
-
-    except pymem.exception.ProcessNotFound:
-        status_label.configure(text=f"Ошибка: Процесс '{procname}' не найден!", text_color="red")
     except ValueError:
-        status_label.configure(text="Ошибка: Адрес и длина должны быть числами (можно в hex, например 0x...).", text_color="red")
-    except pymem.exception.MemoryWriteError as e:
-        status_label.configure(text=f"Ошибка записи в память: {e}\n(Попробуйте запустить от имени администратора)", text_color="red")
-    except Exception as e:
-        # Отлавливаем любые другие возможные ошибки
-        status_label.configure(text=f"Произошла непредвиденная ошибка: {e}", text_color="red")
+        # Эта ошибка возникнет, если в поля ввели не числа
+        error_msg = "Error: PID, Address and Length must be valid numbers."
+        print(error_msg)
+        status_label.configure(text=error_msg, text_color="red")
 
 
 button = customtkinter.CTkButton(master=app,
                                  width=150,
-                                 height=40,
+                                 height=32,
                                  border_width=0,
                                  corner_radius=8,
                                  fg_color="#FF0000",
-                                 hover_color="#C00000",
-                                 text="Очистить память",
-                                 font=("Arial", 14, "bold"),
-                                 command=button_event)
-
+                                 hover_color="#6A6767",
+                                 text="Overwrite Memory",
+                                 command=button_event) # Привязываем нашу функцию к кнопке
 button.place(relx=0.5, rely=0.75, anchor=tkinter.CENTER)
 
-# --- ЗАПУСК ПРИЛОЖЕНИЯ ---
+# Метка для вывода статуса операции (успех/ошибка)
+status_label = customtkinter.CTkLabel(master=app, text="", font=("Arial", 12))
+status_label.place(relx=0.5, rely=0.9, anchor=tkinter.CENTER)
+
 app.mainloop()
