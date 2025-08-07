@@ -1,92 +1,86 @@
 import pymem
 import pymem.process
-import customtkinter
-import tkinter
+import customtkinter as ctk
+from PIL import Image, ImageTk
+import tkinter as tk
+import os
 
 # --- Настройка окна ---
-customtkinter.set_appearance_mode("light")  # Изменили на светлую тему для "тяночного" стиля
-app = customtkinter.CTk()
-app.configure(bg="#FFF0F5")  # Светло-розовый фон для тян-вайба
-app.geometry("700x400")  # Сделал окно чуть выше для статус-бара
-app.title("spastil DarkFred     |     THIS TOOL IS FREE")
+ctk.set_appearance_mode("light")  # Светлая тема для "тяночного" стиля
+app = ctk.CTk()
+app.geometry("700x400")
+app.title("spastil DarkFred | THIS TOOL IS FREE")
+
+# --- Установка фона с изображением ---
+def set_background(image_path):
+    try:
+        # Открываем изображение
+        img = Image.open(image_path)
+        # Изменяем размер изображения под окно
+        img = img.resize((700, 400), Image.Resampling.LANCZOS)
+        photo = ImageTk.PhotoImage(img)
+        # Создаем метку для фона
+        bg_label = tk.Label(app, image=photo)
+        bg_label.image = photo  # Сохраняем ссылку, чтобы избежать сборки мусора
+        bg_label.place(x=0, y=0, relwidth=1, relheight=1)
+    except Exception as e:
+        print(f"Ошибка загрузки фона: {e}")
+        app.configure(bg="#FFF0F5")  # Резервный фон, если изображение не загрузилось
+
+# Укажите путь к изображению "тяночки" (замените на свой файл)
+background_image = "path/to/your/tyanochka_image.png"  # Замените на путь к файлу
+set_background(background_image)
 
 # --- Элементы интерфейса ---
-label_title = customtkinter.CTkLabel(master=app, text="spastil DarkFred", text_color="#FF69B4", font=("Arial", 20))  # Розовый текст
-label_title.place(relx=0.5, rely=0.1, anchor=tkinter.CENTER)
+label_title = ctk.CTkLabel(master=app, text="spastil DarkFred", text_color="#FF69B4", font=("Arial", 20))
+label_title.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
 
-# ИЗМЕНЕНИЕ №1: Запрашиваем PID вместо имени процесса
-entry_pid = customtkinter.CTkEntry(master=app,
-                                   placeholder_text="PID процесса",
-                                   width=150,
-                                   height=30,
-                                   border_width=2,
-                                   corner_radius=10)
-entry_pid.place(relx=0.5, rely=0.25, anchor=tkinter.CENTER)
+entry_pid = ctk.CTkEntry(master=app, placeholder_text="PID процесса", width=150, height=30, border_width=2, corner_radius=10)
+entry_pid.place(relx=0.5, rely=0.25, anchor=tk.CENTER)
 
-entry_address = customtkinter.CTkEntry(master=app,
-                                       placeholder_text="Адрес в памяти (напр. 0x123ABC)",
-                                       width=150,
-                                       height=30,
-                                       border_width=2,
-                                       corner_radius=10)
-entry_address.place(relx=0.5, rely=0.4, anchor=tkinter.CENTER)
+entry_address = ctk.CTkEntry(master=app, placeholder_text="Адрес в памяти (напр. 0x123ABC)", width=150, height=30, border_width=2, corner_radius=10)
+entry_address.place(relx=0.5, rely=0.4, anchor=tk.CENTER)
 
-entry_length = customtkinter.CTkEntry(master=app,
-                                      placeholder_text="Длина для перезаписи",
-                                      width=150,
-                                      height=30,
-                                      border_width=2,
-                                      corner_radius=10)
-entry_length.place(relx=0.5, rely=0.55, anchor=tkinter.CENTER)
+entry_length = ctk.CTkEntry(master=app, placeholder_text="Длина для перезаписи", width=150, height=30, border_width=2, corner_radius=10)
+entry_length.place(relx=0.5, rely=0.55, anchor=tk.CENTER)
 
-# Добавим метку для отображения статуса операции
-status_label = customtkinter.CTkLabel(master=app, text="Статус: ожидание ввода", text_color="grey")
-status_label.place(relx=0.5, rely=0.9, anchor=tkinter.CENTER)
+status_label = ctk.CTkLabel(master=app, text="Статус: ожидание ввода", text_color="grey")
+status_label.place(relx=0.5, rely=0.9, anchor=tk.CENTER)
 
-# ИЗМЕНЕНИЕ №2: Полностью переписанная логика кнопки
+# --- Логика кнопки ---
 def button_event():
     try:
-        # Получаем данные из полей ввода
-        pid = int(entry_pid.get())  # Конвертируем PID в число
-        address = int(entry_address.get(), 0)  # 0 позволяет вводить hex (0x...)
-        length = int(entry_length.get(), 0)
+        pid = int(entry_pid.get())
+        address = int(entry_address.get(), 16)  # Используем 16 для явного шестнадцатеричного формата
+        length = int(entry_length.get())
     except ValueError:
-        # Если пользователь ввел текст вместо числа
         status_label.configure(text="Ошибка: PID и длина должны быть числами.", text_color="orange")
         return
 
     try:
-        # 1. Открываем процесс по его PID
         pm = pymem.Pymem(pid)
         status_label.configure(text=f"Процесс '{pm.process_name}' (PID: {pid}) найден.", text_color="cyan")
-        app.update_idletasks()  # Обновляем текст до начала записи
+        app.update_idletasks()
 
-        # 2. Готовим данные для записи (байтовая строка из точек)
-        # Это правильный и эффективный способ
+        # Готовим данные для записи
         replacement_bytes = b'.' * length
         
-        # 3. ГЛАВНОЕ: Перезаписываем память по адресу
+        # Перезаписываем память
         pm.write_bytes(address, replacement_bytes, length)
         
-        status_label.configure(text=f"УСПЕХ! {length} байт по адресу {hex(address)} перезаписано.", text_color="green")
+        # Читаем обратно для проверки (с обработкой некорректных данных)
+        read_buffer = pm.read_bytes(address, length)
+        current_string = read_buffer.decode('ascii', errors='replace').replace('\x00', '.')  # Заменяем некорректные байты
+        status_label.configure(text=f"УСПЕХ! {length} байт по адресу {hex(address)} перезаписано. Текущее: {current_string}", text_color="green")
 
     except pymem.exception.ProcessNotFound:
         status_label.configure(text=f"Ошибка: Процесс с PID {pid} не найден.", text_color="red")
     except pymem.exception.MemoryWriteError:
         status_label.configure(text=f"Ошибка: Не удалось записать в память. Адрес защищен?", text_color="red")
     except Exception as e:
-        # Ловим любые другие непредвиденные ошибки
         status_label.configure(text=f"Неизвестная ошибка: {e}", text_color="red")
 
-button = customtkinter.CTkButton(master=app,
-                                 width=120,
-                                 height=32,
-                                 border_width=0,
-                                 corner_radius=8,
-                                 fg_color="#00CED1",  # Голубой цвет кнопки
-                                 hover_color="#87CEEB",  # Светло-голубой эффект при наведении
-                                 text="Remove String",
-                                 command=button_event)
-button.place(relx=0.5, rely=0.75, anchor=tkinter.CENTER)
+button = ctk.CTkButton(master=app, width=120, height=32, border_width=0, corner_radius=8, fg_color="#00CED1", hover_color="#87CEEB", text="Remove String", command=button_event)
+button.place(relx=0.5, rely=0.75, anchor=tk.CENTER)
 
 app.mainloop()
