@@ -1,93 +1,104 @@
 import pymem
 import customtkinter
-import traceback
+import tkinter
 
-# Настройка темной темы
+# Устанавливаем стандартную темную тему
 customtkinter.set_appearance_mode("dark")
+customtkinter.set_default_color_theme("blue") # Опционально, для лучшего вида
 
-# Создание главного окна
 app = customtkinter.CTk()
-app.geometry("700x300")
-app.title("String Remover | GITHUB.COM/BLAST3X")
+# app.configure(bg="black") # Это уже не нужно при установке темной темы
+app.geometry("700x350") # Немного увеличим высоту для статусной строки
+app.title("GITHUB.COM/BLAST3X     |     MEMORY STRING REMOVER (FREE TOOL)")
 
-# Метка с информацией об авторе
-label = customtkinter.CTkLabel(master=app, text="Создано: GITHUB.COM/BLAST3X", text_color="#FF0000", font=("Arial", 16))
-label.place(relx=0.5, rely=0.1, anchor=customtkinter.CENTER)
+# --- ВИДЖЕТЫ ИНТЕРФЕЙСА ---
 
-# Поле ввода PID процесса
-entry = customtkinter.CTkEntry(master=app, placeholder_text="PID процесса (например, 1234)", width=200, height=30, border_width=2, corner_radius=10)
-entry.place(relx=0.5, rely=0.3, anchor=customtkinter.CENTER)
+label = customtkinter.CTkLabel(master=app, text="MADE BY GITHUB.COM/BLAST3X", text_color="#FF0000", font=("Arial", 16, "bold"))
+label.place(relx=0.5, rely=0.1, anchor=tkinter.CENTER)
 
-# Поле ввода адреса памяти
-entry1 = customtkinter.CTkEntry(master=app, placeholder_text="Адрес памяти (hex, например, 0x12345678)", width=200, height=30, border_width=2, corner_radius=10)
-entry1.place(relx=0.5, rely=0.45, anchor=customtkinter.CENTER)
+entry = customtkinter.CTkEntry(master=app,
+                               placeholder_text="process.exe",
+                               width=150,
+                               height=30,
+                               border_width=2,
+                               corner_radius=10)
+entry.place(relx=0.5, rely=0.25, anchor=tkinter.CENTER)
 
-# Поле ввода длины
-entry2 = customtkinter.CTkEntry(master=app, placeholder_text="Длина (байт)", width=200, height=30, border_width=2, corner_radius=10)
-entry2.place(relx=0.5, rely=0.6, anchor=customtkinter.CENTER)
+entry1 = customtkinter.CTkEntry(master=app,
+                                placeholder_text="0xMemoryAddress",
+                                width=150,
+                                height=30,
+                                border_width=2,
+                                corner_radius=10)
+entry1.place(relx=0.5, rely=0.4, anchor=tkinter.CENTER)
 
-# Метка для отображения статуса
-status_label = customtkinter.CTkLabel(master=app, text="", text_color="#FFFFFF", font=("Arial", 12))
-status_label.place(relx=0.5, rely=0.75, anchor=customtkinter.CENTER)
+entry2 = customtkinter.CTkEntry(master=app,
+                                placeholder_text="length",
+                                width=150,
+                                height=30,
+                                border_width=2,
+                                corner_radius=10)
+entry2.place(relx=0.5, rely=0.55, anchor=tkinter.CENTER)
 
-def remove():
+# Добавим метку для вывода статуса операции
+status_label = customtkinter.CTkLabel(master=app, text="", text_color="yellow")
+status_label.place(relx=0.5, rely=0.9, anchor=tkinter.CENTER)
+
+
+# --- ОСНОВНАЯ ЛОГИКА ---
+
+def button_event():
+    """
+    Функция, которая выполняется при нажатии на кнопку.
+    Она подключается к процессу и записывает нули по указанному адресу.
+    """
     try:
-        # Получение входных данных
-        pid_str = entry.get().strip()
-        address_str = entry1.get().strip()
-        length_str = entry2.get().strip()
-
-        # Проверка заполненности полей
-        if not pid_str or not address_str or not length_str:
-            status_label.configure(text="Ошибка: Все поля должны быть заполнены!", text_color="#FF0000")
+        proc_name = entry.get()
+        # Проверяем, что все поля заполнены
+        if not proc_name or not entry1.get() or not entry2.get():
+            status_label.configure(text="Ошибка: Все поля должны быть заполнены.", text_color="orange")
             return
 
-        # Проверка PID, адреса и длины
-        try:
-            pid = int(pid_str)  # PID как целое число
-            address = int(address_str, 16)  # Шестнадцатеричный адрес
-            length = int(length_str)  # Длина в байтах
-            if length <= 0:
-                raise ValueError("Длина должна быть положительной")
-        except ValueError as e:
-            status_label.configure(text=f"Ошибка: Неверный PID, адрес или длина ({str(e)})", text_color="#FF0000")
-            return
+        # Получаем адрес и длину. int(..., 0) позволяет вводить как '123' так и '0x...'
+        address = int(entry1.get(), 0)
+        length = int(entry2.get(), 0) # Исправлена опечатка lenght -> length
 
-        # Открытие процесса
-        status_label.configure(text="Открытие процесса...", text_color="#FFFFFF")
-        pm = pymem.Pymem()
-        pm.open_process(pid)
+        status_label.configure(text=f"Поиск процесса: {proc_name}...", text_color="yellow")
+        app.update_idletasks() # Обновляем интерфейс, чтобы пользователь видел сообщение
 
-        # Чтение текущей строки из памяти
-        status_label.configure(text="Чтение данных из памяти...", text_color="#FFFFFF")
-        current_string = pymem.memory.read_string(pm.process_handle, address, length)
-        status_label.configure(text=f"Прочитано: {current_string}", text_color="#00FF00")
+        # Подключаемся к процессу, используя современный синтаксис pymem
+        pm = pymem.Pymem(proc_name)
 
-        # Запись строки из точек в память
-        status_label.configure(text="Запись данных в память...", text_color="#FFFFFF")
-        pymem.memory.write_string(pm.process_handle, address, b'.' * length)
-        status_label.configure(text=f"Успешно записано {length} байт по адресу {hex(address)}", text_color="#00FF00")
+        # "Удаление" строки - это, по сути, перезапись её памяти.
+        # Лучший способ - записать туда нулевые байты (b'\x00').
+        payload = b'\x00' * length
 
-        # Закрытие процесса
-        pm.close_process()
+        # Записываем байты в память процесса
+        pm.write_bytes(address, payload, length)
 
-    except pymem.exception.PymemError as e:
-        status_label.configure(text=f"Ошибка Pymem: {str(e)}", text_color="#FF0000")
+        # Выводим сообщение об успехе
+        status_label.configure(text=f"Успешно! {length} байт записано по адресу {hex(address)}", text_color="green")
+
+    except pymem.exception.ProcessNotFound:
+        status_label.configure(text=f"Ошибка: Процесс '{proc_name}' не найден.", text_color="red")
+    except ValueError:
+        status_label.configure(text="Ошибка: Неверный формат адреса или длины.", text_color="red")
     except Exception as e:
-        status_label.configure(text=f"Неожиданная ошибка: {str(e)}", text_color="#FF0000")
-        print("Полная ошибка:", traceback.format_exc())  # Вывод трассировки в консоль
+        # Отлавливаем другие возможные ошибки (например, отказ в доступе)
+        status_label.configure(text=f"Произошла ошибка: {e}", text_color="red")
 
-# Кнопка для выполнения операции
+
 button = customtkinter.CTkButton(master=app,
-                                 width=120,
-                                 height=32,
+                                 width=150,
+                                 height=40,
                                  border_width=0,
                                  corner_radius=8,
                                  fg_color="#FF0000",
-                                 hover_color="#6A6767",
-                                 text="Заменить строку",
-                                 command=remove)
-button.place(relx=0.5, rely=0.9, anchor=customtkinter.CENTER)
+                                 hover_color="#C00000",
+                                 text="Remove String",
+                                 font=("Arial", 14, "bold"),
+                                 command=button_event)
 
-# Запуск приложения
+button.place(relx=0.5, rely=0.75, anchor=tkinter.CENTER)
 app.mainloop()
+
