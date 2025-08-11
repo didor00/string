@@ -1,9 +1,10 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, QPoint
 import pymem
+import sys
 
 def close():
-     sys.exit(0);
+    sys.exit(0)
 
 class Ui_Dialog(QtWidgets.QDialog):
     def setupUi(self):
@@ -27,14 +28,14 @@ class Ui_Dialog(QtWidgets.QDialog):
 "")
         self.pushButton.setText("")
         self.pushButton.setObjectName("pushButton")
-        self.pushButton.clicked.connect(close);
+        self.pushButton.clicked.connect(close)
         self.label = QtWidgets.QLabel(self.frame)
         self.label.setGeometry(QtCore.QRect(460, 10, 47, 13))
         self.label.setStyleSheet("color: white;")
         self.label.setObjectName("label")
         self.lineEdit = QtWidgets.QLineEdit(self.frame)
         self.lineEdit.setGeometry(QtCore.QRect(10, 40, 461, 30))
-        self.lineEdit.setMinimumSize(QtCore.QSize(0, 30))
+        self.lineEdit.setMinimumSize(QtCore QSize(0, 30))
         self.lineEdit.setStyleSheet("QLineEdit {\n"
 "    background-color: rgb(28, 28, 28);\n"
 "    border-radius: 5px;\n"
@@ -47,7 +48,7 @@ class Ui_Dialog(QtWidgets.QDialog):
         self.lineEdit.setObjectName("lineEdit")
         self.lineEdit_2 = QtWidgets.QLineEdit(self.frame)
         self.lineEdit_2.setGeometry(QtCore.QRect(10, 80, 461, 30))
-        self.lineEdit_2.setMinimumSize(QtCore.QSize(0, 30))
+        self.lineEdit_2.setMinimumSize(QtCore QSize(0, 30))
         self.lineEdit_2.setStyleSheet("QLineEdit {\n"
 "    background-color: rgb(28, 28, 28);\n"
 "    border-radius: 5px;\n"
@@ -60,7 +61,7 @@ class Ui_Dialog(QtWidgets.QDialog):
         self.lineEdit_2.setObjectName("lineEdit_2")
         self.lineEdit_3 = QtWidgets.QLineEdit(self.frame)
         self.lineEdit_3.setGeometry(QtCore.QRect(10, 120, 301, 30))
-        self.lineEdit_3.setMinimumSize(QtCore.QSize(0, 30))
+        self.lineEdit_3.setMinimumSize(QtCore QSize(0, 30))
         self.lineEdit_3.setStyleSheet("QLineEdit {\n"
 "    background-color: rgb(28, 28, 28);\n"
 "    border-radius: 5px;\n"
@@ -73,7 +74,7 @@ class Ui_Dialog(QtWidgets.QDialog):
         self.lineEdit_3.setObjectName("lineEdit_3")
         self.pushButton_2 = QtWidgets.QPushButton(self.frame)
         self.pushButton_2.setGeometry(QtCore.QRect(320, 120, 150, 30))
-        self.pushButton_2.setMinimumSize(QtCore.QSize(150, 30))
+        self.pushButton_2.setMinimumSize(QtCore QSize(150, 30))
         font = QtGui.QFont()
         font.setFamily("Segoe UI")
         font.setPointSize(9)
@@ -96,47 +97,61 @@ class Ui_Dialog(QtWidgets.QDialog):
         self.label_2.setStyleSheet("color: white;")
         self.label_2.setObjectName("label_2")
 
-        self.pushButton_2.clicked.connect(self.remove);
+        self.pushButton_2.clicked.connect(self.remove)
         self.retranslateUi(self)
         QtCore.QMetaObject.connectSlotsByName(self)
-
+        self.center()  # Центрируем окно при запуске
 
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Str", "Str"))
         self.label.setText(_translate("Dialog", "X"))
-        self.lineEdit.setPlaceholderText(_translate("Dialog", "PD"))
-        self.lineEdit_2.setPlaceholderText(_translate("Dialog", "Add"))
-        self.lineEdit_3.setPlaceholderText(_translate("Dialog", "Len"))
-        self.pushButton_2.setText(_translate("Dialog", "Rem"))
-        self.label_2.setText(_translate("Dialog", "Str"))
+        self.lineEdit.setPlaceholderText(_translate("Dialog", "PID"))
+        self.lineEdit_2.setPlaceholderText(_translate("Dialog", "Address (e.g., 0x123ABC)"))
+        self.lineEdit_3.setPlaceholderText(_translate("Dialog", "Length"))
+        self.pushButton_2.setText(_translate("Dialog", "Remove"))
+        self.label_2.setText(_translate("Dialog", "String Cleaner"))
 
     def center(self):
         qr = self.frameGeometry()
-        cp = QDesktopWidget().availableGeometry().center()
+        cp = QtWidgets.QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
     def remove(self):
         try:
-           pymem.memory.write_string(pymem.process.open(int(self.lineEdit.text(), 0)), int(self.lineEdit_2.text(), 0), bytes(int(self.lineEdit_3.text(), 0)))
-           print("Done!")
-        except:
-           print("Err")
+            pid = int(self.lineEdit.text(), 0)  # Конвертируем PID
+            address = int(self.lineEdit_2.text(), 0)  # Конвертируем адрес
+            length = int(self.lineEdit_3.text())  # Конвертируем длину
+
+            pm = pymem.Pymem(pid)  # Открываем процесс
+            replacement = b'.' * length  # Создаём строку точек
+            pm.write_bytes(address, replacement, length)  # Записываем в память
+
+            read_back = pm.read_bytes(address, length)  # Читаем для проверки
+            current_string = ''.join('.' if c < 32 or c > 126 else chr(c) for c in read_back)  # Обработка
+            print(f"Done! Written {length} bytes at {hex(address)}. Current: {current_string}")
+        except ValueError:
+            print("Error: Invalid input (PID, Address, or Length must be numbers).")
+        except pymem.exception.ProcessNotFound:
+            print("Error: Process with PID not found.")
+        except pymem.exception.MemoryWriteError:
+            print("Error: Failed to write to memory. Address protected?")
+        except Exception as e:
+            print(f"Error: {str(e)}")
 
     def mousePressEvent(self, event):
-        self.oldPos = event.globalPos()
+        if event.button() == Qt.LeftButton:
+            self.oldPos = event.globalPos()
 
     def mouseMoveEvent(self, event):
-        delta = QPoint (event.globalPos() - self.oldPos)
-        self.move(self.x() + delta.x(), self.y() + delta.y())
-        self.oldPos = event.globalPos()
-
+        if hasattr(self, 'oldPos'):
+            delta = QPoint(event.globalPos() - self.oldPos)
+            self.move(self.x() + delta.x(), self.y() + delta.y())
+            self.oldPos = event.globalPos()
 
 if __name__ == "__main__":
-    import sys
     app = QtWidgets.QApplication(sys.argv)
-
     ui = Ui_Dialog()
     ui.setupUi()
     ui.show()
