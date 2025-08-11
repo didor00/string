@@ -1,110 +1,143 @@
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import Qt, QPoint
 import pymem
-import pymem.process
-import customtkinter
-import tkinter
 
-# --- Настройка окна ---
-customtkinter.set_appearance_mode("light")  # Светлая тема для "тяночного" стиля
-app = customtkinter.CTk()
-app.configure(bg="#FFF0F5")  # Резервный светло-розовый фон
-app.geometry("700x400")  # Сделал окно чуть выше для статус-бара
-app.title("spastil DarkFred     |     THIS TOOL IS FREE")
+def close():
+     sys.exit(0);
 
-# --- Установка фона с изображением ---
-def set_background(image_path):
-    try:
-        from PIL import Image, ImageTk
-        import os
-        if os.path.exists(image_path):
-            img = Image.open(image_path)
-            img = img.resize((700, 400), Image.Resampling.LANCZOS)
-            photo = ImageTk.PhotoImage(img)
-            bg_label = tkinter.Label(app, image=photo)
-            bg_label.image = photo  # Сохраняем ссылку
-            bg_label.place(x=0, y=0, relwidth=1, relheight=1)
-        else:
-            print(f"Изображение не найдено по пути: {image_path}")
-    except Exception as e:
-        print(f"Ошибка загрузки фона: {e}")
+class Ui_Dialog(QtWidgets.QDialog):
+    def setupUi(self):
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setObjectName("Dialog")
+        self.resize(500, 183)
+        self.frame = QtWidgets.QFrame(self)
+        self.frame.setGeometry(QtCore.QRect(10, 10, 481, 161))
+        self.frame.setStyleSheet("QFrame { \n"
+"background-color: rgb(25, 25, 25);\n"
+"border-radius: 15px;\n"
+"}")
+        self.frame.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        self.frame.setFrameShadow(QtWidgets.QFrame.Raised)
+        self.frame.setObjectName("frame")
+        self.pushButton = QtWidgets.QPushButton(self.frame)
+        self.pushButton.setGeometry(QtCore.QRect(440, 0, 41, 31))
+        self.pushButton.setStyleSheet("background-color: rgb(25, 25, 25);\n"
+"border-radius: 15px;\n"
+"")
+        self.pushButton.setText("")
+        self.pushButton.setObjectName("pushButton")
+        self.pushButton.clicked.connect(close);
+        self.label = QtWidgets.QLabel(self.frame)
+        self.label.setGeometry(QtCore.QRect(460, 10, 47, 13))
+        self.label.setStyleSheet("color: white;")
+        self.label.setObjectName("label")
+        self.lineEdit = QtWidgets.QLineEdit(self.frame)
+        self.lineEdit.setGeometry(QtCore.QRect(10, 40, 461, 30))
+        self.lineEdit.setMinimumSize(QtCore.QSize(0, 30))
+        self.lineEdit.setStyleSheet("QLineEdit {\n"
+"    background-color: rgb(28, 28, 28);\n"
+"    border-radius: 5px;\n"
+"    border: 2px solid rgb(27, 29, 35);\n"
+"    padding-left: 10px;\n"
+"    color: white;\n"
+"    border: 2px solid rgb(255, 59, 59);\n"
+"}")
+        self.lineEdit.setText("")
+        self.lineEdit.setObjectName("lineEdit")
+        self.lineEdit_2 = QtWidgets.QLineEdit(self.frame)
+        self.lineEdit_2.setGeometry(QtCore.QRect(10, 80, 461, 30))
+        self.lineEdit_2.setMinimumSize(QtCore.QSize(0, 30))
+        self.lineEdit_2.setStyleSheet("QLineEdit {\n"
+"    background-color: rgb(28, 28, 28);\n"
+"    border-radius: 5px;\n"
+"    border: 2px solid rgb(27, 29, 35);\n"
+"    padding-left: 10px;\n"
+"    color: white;\n"
+"    border: 2px solid rgb(255, 59, 59);\n"
+"}")
+        self.lineEdit_2.setText("")
+        self.lineEdit_2.setObjectName("lineEdit_2")
+        self.lineEdit_3 = QtWidgets.QLineEdit(self.frame)
+        self.lineEdit_3.setGeometry(QtCore.QRect(10, 120, 301, 30))
+        self.lineEdit_3.setMinimumSize(QtCore.QSize(0, 30))
+        self.lineEdit_3.setStyleSheet("QLineEdit {\n"
+"    background-color: rgb(28, 28, 28);\n"
+"    border-radius: 5px;\n"
+"    border: 2px solid rgb(27, 29, 35);\n"
+"    padding-left: 10px;\n"
+"    color: white;\n"
+"    border: 2px solid rgb(255, 59, 59);\n"
+"}")
+        self.lineEdit_3.setText("")
+        self.lineEdit_3.setObjectName("lineEdit_3")
+        self.pushButton_2 = QtWidgets.QPushButton(self.frame)
+        self.pushButton_2.setGeometry(QtCore.QRect(320, 120, 150, 30))
+        self.pushButton_2.setMinimumSize(QtCore.QSize(150, 30))
+        font = QtGui.QFont()
+        font.setFamily("Segoe UI")
+        font.setPointSize(9)
+        self.pushButton_2.setFont(font)
+        self.pushButton_2.setStyleSheet("QPushButton {\n"
+"    border-radius: 10px;    \n"
+"    background-color: rgb(255, 59, 59);\n"
+"    color: white;\n"
+"}\n"
+"QPushButton:hover {\n"
+"    background-color: rgb(219, 55, 55);\n"
+"}\n"
+"QPushButton:pressed {    \n"
+"    background-color: rgb(255, 59, 59);\n"
+"    color: rgb(255, 59, 59);\n"
+"}")
+        self.pushButton_2.setObjectName("pushButton_2")
+        self.label_2 = QtWidgets.QLabel(self.frame)
+        self.label_2.setGeometry(QtCore.QRect(20, 10, 271, 16))
+        self.label_2.setStyleSheet("color: white;")
+        self.label_2.setObjectName("label_2")
 
-# Укажите путь к изображению "тяночки" (замените на свой файл)
-background_image = "C:/Users/Ярик/tyanochka.png"  # Замените на реальный путь!
-set_background(background_image)
+        self.pushButton_2.clicked.connect(self.remove);
+        self.retranslateUi(self)
+        QtCore.QMetaObject.connectSlotsByName(self)
 
-# --- Элементы интерфейса ---
-label_title = customtkinter.CTkLabel(master=app, text="spastil DarkFred", text_color="#FF69B4", font=("Arial", 20))
-label_title.place(relx=0.5, rely=0.1, anchor=tkinter.CENTER)
 
-entry_pid = customtkinter.CTkEntry(master=app,
-                                   placeholder_text="PID процесса",
-                                   width=150,
-                                   height=30,
-                                   border_width=2,
-                                   corner_radius=10,
-                                   border_color="#00CED1")
-entry_pid.place(relx=0.5, rely=0.25, anchor=tkinter.CENTER)
+    def retranslateUi(self, Dialog):
+        _translate = QtCore.QCoreApplication.translate
+        Dialog.setWindowTitle(_translate("Str", "Str"))
+        self.label.setText(_translate("Dialog", "X"))
+        self.lineEdit.setPlaceholderText(_translate("Dialog", "PD"))
+        self.lineEdit_2.setPlaceholderText(_translate("Dialog", "Add"))
+        self.lineEdit_3.setPlaceholderText(_translate("Dialog", "Len"))
+        self.pushButton_2.setText(_translate("Dialog", "Rem"))
+        self.label_2.setText(_translate("Dialog", "Str"))
 
-entry_address = customtkinter.CTkEntry(master=app,
-                                       placeholder_text="Адрес в памяти (напр. 0x123ABC)",
-                                       width=150,
-                                       height=30,
-                                       border_width=2,
-                                       corner_radius=10,
-                                       border_color="#00CED1")
-entry_address.place(relx=0.5, rely=0.4, anchor=tkinter.CENTER)
+    def center(self):
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
 
-entry_length = customtkinter.CTkEntry(master=app,
-                                      placeholder_text="Длина для перезаписи",
-                                      width=150,
-                                      height=30,
-                                      border_width=2,
-                                      corner_radius=10,
-                                      border_color="#00CED1")
-entry_length.place(relx=0.5, rely=0.55, anchor=tkinter.CENTER)
+    def remove(self):
+        try:
+           pymem.memory.write_string(pymem.process.open(int(self.lineEdit.text(), 0)), int(self.lineEdit_2.text(), 0), bytes(int(self.lineEdit_3.text(), 0)))
+           print("Done!")
+        except:
+           print("Err")
 
-# Добавим метку для отображения статуса операции
-status_label = customtkinter.CTkLabel(master=app, text="Статус: ожидание ввода (11:22 AM EEST, Aug 11, 2025)", text_color="grey")
-status_label.place(relx=0.5, rely=0.9, anchor=tkinter.CENTER)
+    def mousePressEvent(self, event):
+        self.oldPos = event.globalPos()
 
-# Логика кнопки с улучшенной обработкой данных
-def button_event():
-    try:
-        pid = int(entry_pid.get())
-        address = int(entry_address.get(), 0)
-        length = int(entry_length.get())
-    except ValueError:
-        status_label.configure(text="Ошибка: PID и длина должны быть числами.", text_color="orange")
-        return
+    def mouseMoveEvent(self, event):
+        delta = QPoint (event.globalPos() - self.oldPos)
+        self.move(self.x() + delta.x(), self.y() + delta.y())
+        self.oldPos = event.globalPos()
 
-    try:
-        pm = pymem.Pymem(pid)
-        status_label.configure(text=f"Процесс '{pm.process_name}' (PID: {pid}) найден.", text_color="cyan")
-        app.update_idletasks()
 
-        replacement_bytes = b'.' * length
-        pm.write_bytes(address, replacement_bytes, length)
-        
-        read_buffer = pm.read_bytes(address, length)
-        current_string = ''.join('.' if c < 32 or c > 126 else chr(c) for c in read_buffer)  # Улучшенная обработка
-        print(f"Отладка: Прочитано из памяти: {read_buffer.hex()} -> {current_string}")
-        status_label.configure(text=f"УСПЕХ! {length} байт по адресу {hex(address)} перезаписано. Текущее: {current_string}", text_color="green")
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
 
-    except pymem.exception.ProcessNotFound:
-        status_label.configure(text=f"Ошибка: Процесс с PID {pid} не найден.", text_color="red")
-    except pymem.exception.MemoryWriteError:
-        status_label.configure(text=f"Ошибка: Не удалось записать в память. Адрес защищен?", text_color="red")
-    except Exception as e:
-        status_label.configure(text=f"Неизвестная ошибка: {e}", text_color="red")
-
-button = customtkinter.CTkButton(master=app,
-                                 width=120,
-                                 height=32,
-                                 border_width=0,
-                                 corner_radius=8,
-                                 fg_color="#00CED1",
-                                 hover_color="#87CEEB",
-                                 text="Remove String",
-                                 command=button_event)
-button.place(relx=0.5, rely=0.75, anchor=tkinter.CENTER)
-
-app.mainloop()
+    ui = Ui_Dialog()
+    ui.setupUi()
+    ui.show()
+    sys.exit(app.exec_())
